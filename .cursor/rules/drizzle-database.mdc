@@ -1,0 +1,106 @@
+---
+alwaysApply: true
+---
+# Drizzle ORM Database Interactions
+
+This project uses **Drizzle ORM** for all database interactions. All database queries and operations must use Drizzle's query builder and schema definitions.
+
+## Database Setup
+
+The database connection is configured in [src/db/index.ts](mdc:src/db/index.ts) using Neon (serverless PostgreSQL). Import the `db` instance from this file:
+
+```typescript
+import { db } from '@/db';
+```
+
+## Schema Definitions
+
+All database schema definitions are in [src/db/schema.ts](mdc:src/db/schema.ts). This file contains:
+- `decksTable` - Flashcard decks table
+- `cardsTable` - Individual flashcard table
+- Relations between tables for easier querying
+
+**Always import table definitions and relations from the schema file:**
+
+```typescript
+import { decksTable, cardsTable, decksRelations, cardsRelations } from '@/db/schema';
+```
+
+## Query Guidelines
+
+### Required Practices
+
+1. **Always use Drizzle queries** - Never write raw SQL queries. Use Drizzle's query builder API.
+2. **Import from schema** - Always import table definitions from [src/db/schema.ts](mdc:src/db/schema.ts), never define tables inline.
+3. **Use relations** - Leverage the defined relations (`decksRelations`, `cardsRelations`) for easier joins and nested queries.
+4. **Type safety** - Drizzle provides full TypeScript type inference. Use it to ensure type-safe queries.
+
+### Example Query Patterns
+
+**Select queries:**
+```typescript
+import { db } from '@/db';
+import { decksTable, cardsTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+// Get all decks for a user
+const decks = await db.select().from(decksTable).where(eq(decksTable.userId, userId));
+
+// Get cards for a deck with relation
+const deckWithCards = await db.query.decksTable.findFirst({
+  where: eq(decksTable.id, deckId),
+  with: { cards: true }
+});
+```
+
+**Insert queries:**
+```typescript
+await db.insert(decksTable).values({
+  userId: userId,
+  name: 'My Deck',
+  description: 'Description here'
+});
+```
+
+**Update queries:**
+```typescript
+await db.update(decksTable)
+  .set({ name: 'Updated Name' })
+  .where(eq(decksTable.id, deckId));
+```
+
+**Delete queries:**
+```typescript
+await db.delete(decksTable).where(eq(decksTable.id, deckId));
+```
+
+### Forbidden Practices
+
+- ❌ **Never use raw SQL** - Do not use `db.execute()` with raw SQL strings
+- ❌ **Never bypass Drizzle** - Do not use other database libraries or direct database connections
+- ❌ **Never define schemas inline** - Always import from the schema file
+- ❌ **Never use string concatenation for queries** - Always use Drizzle's query builder
+
+## Relations Usage
+
+The schema defines relations for easier querying. Use them instead of manual joins:
+
+```typescript
+// Good: Using relations
+const deck = await db.query.decksTable.findFirst({
+  where: eq(decksTable.id, deckId),
+  with: { cards: true }
+});
+
+// Avoid: Manual joins when relations are available
+```
+
+## Migration Management
+
+Database migrations are managed through Drizzle Kit. The migration files are in the `drizzle/` directory. When schema changes are needed:
+
+1. Update [src/db/schema.ts](mdc:src/db/schema.ts)
+2. Generate migration using Drizzle Kit
+3. Apply migration to the database
+
+Never modify migration files directly after they've been applied to production.

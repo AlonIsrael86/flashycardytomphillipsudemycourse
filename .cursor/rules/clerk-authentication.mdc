@@ -1,0 +1,234 @@
+---
+alwaysApply: true
+---
+# Clerk Authentication & Data Isolation
+
+This project uses **Clerk** for all authentication. It is **critical** that users can only access their own data and cannot access any data that does not belong to them.
+
+## Authentication Setup
+
+Clerk is configured in:
+- [src/app/layout.tsx](mdc:src/app/layout.tsx) - ClerkProvider wraps the application
+- [src/proxy.ts](mdc:src/proxy.ts) - Clerk middleware for route protection
+
+## Getting Current User ID
+
+### In API Routes (Route Handlers)
+
+```typescript
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // Use userId for queries
+  const decks = await db.select()
+    .from(decksTable)
+    .where(eq(decksTable.userId, userId));
+}
+```
+
+### In Server Actions
+
+```typescript
+'use server';
+
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/db';
+import { decksTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+export async function getUserDecks() {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    throw new Error('Unauthorized');
+  }
+  
+  return await db.select()
+    .from(decksTable)
+    .where(eq(decksTable.userId, userId));
+}
+```
+
+### In Server Components
+
+```typescript
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/db';
+import { decksTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+export default async function MyComponent() {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return <div>Please sign in</div>;
+  }
+  
+  const decks = await db.select()
+    .from(decksTable)
+    .where(eq(decksTable.userId, userId));
+  
+  // Render decks
+}
+```
+
+## Data Isolation Requirements
+
+### Schema Reference
+
+The [src/db/schema.ts](mdc:src/db/schema.ts) defines:
+- `decksTable.userId` - Stores the Clerk user ID for each deck
+- `cardsTable.deckId` - Links cards to decks (cards are isolated through their deck's userId)
+
+### Critical Rules
+
+1. **Always filter by userId** - Every database query that retrieves user data MUST include a filter for `userId`
+2. **Never trust client input** - Always verify ownership before allowing updates or deletes
+3. **Validate on both read and write** - Check ownership for both GET and POST/PUT/DELETE operations
+
+### Correct Patterns
+
+**✅ Reading user's own data:**
+```typescript
+const { userId } = await auth();
+if (!userId) throw new Error('Unauthorized');
+
+// Always filter by userId
+const deck = await db.select()
+  .from(decksTable)
+  .where(and(
+    eq(decksTable.id, deckId),
+    eq(decksTable.userId, userId) // CRITICAL: Verify ownership
+  ))
+  .limit(1);
+```
+
+**✅ Creating data:**
+```typescript
+const { userId } = await auth();
+if (!userId) throw new Error('Unauthorized');
+
+// Always set userId from auth, never from client input
+await db.insert(decksTable).values({
+  userId: userId, // From auth, not from request body
+  name: name,
+  description: description
+});
+```
+
+**✅ Updating data:**
+```typescript
+const { userId } = await auth();
+if (!userId) throw new Error('Unauthorized');
+
+// First verify ownership
+const existing = await db.select()
+  .from(decksTable)
+  .where(and(
+    eq(decksTable.id, deckId),
+    eq(decksTable.userId, userId)
+  ))
+  .limit(1);
+
+if (existing.length === 0) {
+  throw new Error('Deck not found or access denied');
+}
+
+// Then update
+await db.update(decksTable)
+  .set({ name: newName })
+  .where(and(
+    eq(decksTable.id, deckId),
+    eq(decksTable.userId, userId) // Double-check in update
+  ));
+```
+
+**✅ Accessing cards through decks:**
+```typescript
+const { userId } = await auth();
+if (!userId) throw new Error('Unauthorized');
+
+// Cards are accessed through decks, so verify deck ownership
+const deckWithCards = await db.query.decksTable.findFirst({
+  where: and(
+    eq(decksTable.id, deckId),
+    eq(decksTable.userId, userId) // Verify deck ownership
+  ),
+  with: { cards: true } // Cards are automatically filtered through deck
+});
+```
+
+### Forbidden Patterns
+
+**❌ Never trust client-provided userId:**
+```typescript
+// BAD - Never do this!
+const { userId } = await request.json(); // DON'T TRUST THIS
+await db.insert(decksTable).values({ userId });
+```
+
+**❌ Never query without userId filter:**
+```typescript
+// BAD - Exposes all users' data!
+const decks = await db.select().from(decksTable);
+```
+
+**❌ Never skip ownership verification:**
+```typescript
+// BAD - User could update someone else's deck!
+await db.update(decksTable)
+  .set({ name: newName })
+  .where(eq(decksTable.id, deckId)); // Missing userId check!
+```
+
+**❌ Never use userId from URL or params without verification:**
+```typescript
+// BAD - User could access others' data by changing URL!
+const deck = await db.select()
+  .from(decksTable)
+  .where(eq(decksTable.id, deckIdFromUrl)); // Missing userId check!
+```
+
+## Security Checklist
+
+Before writing any database query, ensure:
+
+- [ ] User is authenticated (`const { userId } = await auth()`)
+- [ ] userId is checked (`if (!userId) return error`)
+- [ ] All SELECT queries filter by `userId`
+- [ ] All UPDATE queries verify ownership first, then filter by `userId`
+- [ ] All DELETE queries verify ownership first, then filter by `userId`
+- [ ] userId is NEVER taken from client input (request body, URL params, etc.)
+- [ ] userId is ALWAYS obtained from `auth()` function
+- [ ] When accessing cards, verify deck ownership first
+
+## Error Handling
+
+When a user tries to access data they don't own:
+
+```typescript
+// Return 404 (Not Found) instead of 403 (Forbidden)
+// This prevents information leakage about which resources exist
+if (deck.length === 0) {
+  return NextResponse.json(
+    { error: 'Deck not found' },
+    { status: 404 }
+  );
+}
+```
+
+## Testing Data Isolation
+
+Always test that:
+1. Users cannot access other users' decks
+2. Users cannot update other users' decks
+3. Users cannot delete other users' decks
+4. Users cannot create decks with someone else's userId
+5. Cards are properly isolated through deck ownership

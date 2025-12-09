@@ -1,0 +1,42 @@
+---
+alwaysApply: true
+---
+# shadcn/ui Component Library
+
+This project uses **shadcn/ui** for all UI elements. shadcn/ui is a collection of re-usable components built with Radix UI and Tailwind CSS.
+
+## Initialization
+
+If shadcn/ui is not initialized in the project, use the following command:
+
+```bash
+npx shadcn@latest init
+```
+
+This will:
+- Set up the necessary configuration files
+- Configure Tailwind CSS
+- Set up the components directory structure
+- Install required dependencies
+
+## Installing Components
+
+If a particular component is not installed, use the following command to add it:
+
+```bash
+npx shadcn@latest add <component-name>
+```
+
+For example, to install the button component:
+
+```bash
+npx shadcn@latest add button
+```
+
+## Usage Guidelines
+
+- Always use shadcn/ui components for UI elements instead of creating custom components from scratch
+- Components are installed in the `components/ui` directory
+- Import components from `@/components/ui/<component-name>`
+- Components can be customized by editing the component files directly
+- Check the [shadcn/ui documentation](https://ui.shadcn.com) for available components and their usage
