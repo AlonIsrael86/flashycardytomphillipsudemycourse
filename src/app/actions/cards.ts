@@ -1,11 +1,13 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { createCard as createCardQuery, deleteCard as deleteCardQuery, updateCard as updateCardQuery } from "@/db/queries/cards";
+import { createCard as createCardQuery, deleteCard as deleteCardQuery, updateCard as updateCardQuery, createCardsBulk } from "@/db/queries/cards";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import OpenAI from "openai";
+import { generateObject } from "ai";
+import { openai } from "@ai-sdk/openai";
 import { getDeckMetadataIssue } from "@/lib/deck-validation";
+import { flashcardSchema, flashcardsArrayOfLength } from "@/lib/ai/schemas";
 
 // Define Zod schema
 const createCardSchema = z.object({
@@ -162,11 +164,6 @@ export async function generateAICards(input: GenerateAICardsInput) {
     throw new Error("AI generation is not configured. Please contact support.");
   }
 
-  // Generate AI cards using OpenAI
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-
   const cardCount = validatedInput.cardCount || 4;
   const prompt = `Generate exactly ${cardCount} high-quality flashcard pair${cardCount === 1 ? '' : 's'} based on the following deck information:
 
@@ -175,63 +172,37 @@ Deck Description: ${deck.description || "No description provided"}
 
 For each flashcard, create a question on the front and a comprehensive answer on the back. The flashcards should be educational, clear, and directly related to the deck topic.
 
-Return the flashcards in the following JSON format:
-{
-  "cards": [
-    {
-      "front": "Question or prompt here",
-      "back": "Answer or explanation here"
-    }
-  ]
-}
-
 Make sure to return exactly ${cardCount} card${cardCount === 1 ? '' : 's'}.`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful assistant that creates educational flashcards. Always return valid JSON with exactly ${cardCount} flashcard${cardCount === 1 ? '' : 's'}.`,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      response_format: { type: "json_object" },
+    // Generate AI cards using Vercel AI SDK with structured output
+    const { object } = await generateObject({
+      model: openai("gpt-4o-mini"),
+      output: "array",
+      schema: flashcardSchema,
+      prompt: [
+        `You are a helpful assistant that creates educational flashcards.`,
+        `Generate exactly ${cardCount} flashcard${cardCount === 1 ? '' : 's'} based on the following deck information:`,
+        ``,
+        `Deck Title: ${deck.name}`,
+        `Deck Description: ${deck.description || "No description provided"}`,
+        ``,
+        `For each flashcard, create a question on the front and a comprehensive answer on the back.`,
+        `The flashcards should be educational, clear, and directly related to the deck topic.`,
+        `Return exactly ${cardCount} flashcard${cardCount === 1 ? '' : 's'}.`,
+      ].join("\n"),
       temperature: 0.7,
     });
 
-    const responseContent = completion.choices[0]?.message?.content;
-    if (!responseContent) {
-      throw new Error("Failed to generate cards");
-    }
+    // Validate the returned array strictly equals cardCount
+    const validatedCards = flashcardsArrayOfLength(cardCount).parse(object);
 
-    const parsedResponse = JSON.parse(responseContent);
-    const cards = parsedResponse.cards || [];
-
-    if (!Array.isArray(cards) || cards.length !== cardCount) {
-      throw new Error(`Invalid response format from AI: expected ${cardCount} card${cardCount === 1 ? '' : 's'}, but received ${cards.length}`);
-    }
-
-    // Create all cards in the database
-    const createdCards = [];
-    for (const card of cards) {
-      if (!card.front || !card.back) {
-        continue; // Skip invalid cards
-      }
-
-      const newCard = await createCardQuery({
-        deckId: validatedInput.deckId,
-        front: card.front.trim(),
-        back: card.back.trim(),
-        userId,
-      });
-
-      createdCards.push(newCard);
-    }
+    // Create all cards in the database using bulk insert
+    const createdCards = await createCardsBulk({
+      deckId: validatedInput.deckId,
+      cards: validatedCards,
+      userId,
+    });
 
     // Revalidate the deck page to show the new cards
     revalidatePath(`/decks/${validatedInput.deckId}`);

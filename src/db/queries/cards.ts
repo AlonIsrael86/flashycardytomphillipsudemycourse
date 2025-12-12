@@ -36,6 +36,41 @@ export async function createCard(params: CreateCardParams) {
   return newCard;
 }
 
+type CreateCardsBulkParams = {
+  deckId: number;
+  cards: Array<{ front: string; back: string }>;
+  userId: string;
+};
+
+/**
+ * Create multiple cards in a deck in a single operation, verifying the deck belongs to the user
+ */
+export async function createCardsBulk(params: CreateCardsBulkParams) {
+  // Verify deck ownership before creating cards
+  const deck = await db.select()
+    .from(decksTable)
+    .where(and(
+      eq(decksTable.id, params.deckId),
+      eq(decksTable.userId, params.userId)
+    ))
+    .limit(1);
+
+  if (deck.length === 0) {
+    throw new Error("Deck not found or access denied");
+  }
+
+  // Create all cards in a single insert operation
+  const newCards = await db.insert(cardsTable).values(
+    params.cards.map(card => ({
+      deckId: params.deckId,
+      front: card.front.trim(),
+      back: card.back.trim(),
+    }))
+  ).returning();
+
+  return newCards;
+}
+
 type DeleteCardParams = {
   cardId: number;
   userId: string;

@@ -1,14 +1,10 @@
-import { Button } from "@/components/ui/button";
-import {
-  SignInButton,
-  SignUpButton,
-} from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { SchemaMarkup } from "@/components/schema-markup";
 import { getBaseUrl } from "@/lib/seo";
 import { WelcomeModal } from "@/components/welcome-modal";
+import { AuthDialogButtons } from "@/components/auth/auth-dialog-buttons";
 
 export const metadata: Metadata = {
   title: "FlashyCardy | AI-Powered Flashcard Platform",
@@ -151,26 +147,7 @@ export default async function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center pt-8">
-            <SignUpButton mode="modal">
-              <Button 
-                size="lg" 
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 text-lg px-8 py-6 rounded-xl"
-              >
-                <span>Get Started Free</span>
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-600 hover:border-zinc-500 transition-all duration-300 hover:scale-105 text-lg px-8 py-6 rounded-xl"
-              >
-                Sign In
-              </Button>
-            </SignInButton>
+            <AuthDialogButtons />
           </div>
 
           {/* Trust Indicators */}

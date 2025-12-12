@@ -31,27 +31,19 @@ export async function getDeckById(deckId: number, userId: string) {
  * Get a deck with all its cards, verifying it belongs to the user
  */
 export async function getDeckWithCards(deckId: number, userId: string) {
-  const deck = await db.select()
-    .from(decksTable)
-    .where(and(
+  const deck = await db.query.decksTable.findFirst({
+    where: and(
       eq(decksTable.id, deckId),
       eq(decksTable.userId, userId)
-    ))
-    .limit(1);
+    ),
+    with: {
+      cards: {
+        orderBy: (cards, { desc }) => [desc(cards.updatedAt)],
+      },
+    },
+  });
 
-  if (deck.length === 0) {
-    return null;
-  }
-
-  const cards = await db.select()
-    .from(cardsTable)
-    .where(eq(cardsTable.deckId, deckId))
-    .orderBy(desc(cardsTable.updatedAt));
-
-  return {
-    ...deck[0],
-    cards
-  };
+  return deck || null;
 }
 
 type CreateDeckParams = {
