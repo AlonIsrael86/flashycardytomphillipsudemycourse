@@ -31,13 +31,17 @@ export const metadata: Metadata = {
   },
 };
 
+const clerkAppearance = {
+  baseTheme: dark,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider appearance={{ baseTheme: dark }}>
+    <ClerkProvider appearance={clerkAppearance}>
       <html lang="en" className={`${poppins.className} dark`}>
         <body className="antialiased">
           <Header />
