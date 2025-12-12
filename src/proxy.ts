@@ -1,9 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const isPublicRoute = createRouteMatcher(["/", "/pricing"]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // Don't redirect - let the page handle authentication with modals
+  // Protect all routes except public ones
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
+  // Public routes don't require authentication - let the page handle auth with modals
   // The page will use SignedIn/SignedOut to show modals
 });
 

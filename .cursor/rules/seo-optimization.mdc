@@ -1,0 +1,177 @@
+---
+alwaysApply: true
+---
+
+# SEO Optimization Requirements
+
+All pages in this Next.js application must be optimized for search engines with proper metadata and structured data.
+
+## Required SEO Elements
+
+### 1. Metadata Export
+
+Every page must export a `metadata` object or use `generateMetadata` function for dynamic metadata. This includes:
+
+- **title**: Page title (required)
+- **description**: Meta description (required, 120-160 characters)
+- **openGraph**: Open Graph tags for social sharing
+- **twitter**: Twitter Card metadata
+- **keywords**: Relevant keywords (optional but recommended)
+
+### 2. Schema Markup (JSON-LD)
+
+All pages must include structured data using JSON-LD format. Common schema types:
+- **WebSite**: For homepage
+- **WebPage**: For standard pages
+- **CollectionPage**: For listing pages (e.g., dashboard with decks)
+- **ItemList**: For list-based content
+
+### 3. Implementation Pattern
+
+#### Static Metadata (Simple Pages)
+
+```typescript
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Page Title | FlashyCardy",
+  description: "A clear, concise description of the page (120-160 characters)",
+  keywords: ["keyword1", "keyword2", "keyword3"],
+  openGraph: {
+    title: "Page Title | FlashyCardy",
+    description: "A clear, concise description of the page",
+    type: "website",
+    siteName: "FlashyCardy",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Page Title | FlashyCardy",
+    description: "A clear, concise description of the page",
+  },
+};
+```
+
+#### Dynamic Metadata (Pages with Dynamic Content)
+
+```typescript
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }): Promise<Metadata> {
+  // Fetch dynamic data
+  const data = await fetchData(params.id);
+  
+  return {
+    title: `${data.title} | FlashyCardy`,
+    description: data.description || "Default description",
+    openGraph: {
+      title: `${data.title} | FlashyCardy`,
+      description: data.description,
+      type: "website",
+    },
+  };
+}
+```
+
+#### Schema Markup Component
+
+Create a reusable component for schema markup:
+
+```typescript
+// components/schema-markup.tsx
+export function SchemaMarkup({ schema }: { schema: object }) {
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+```
+
+#### Usage in Pages
+
+```typescript
+import { SchemaMarkup } from "@/components/schema-markup";
+
+export default function Page() {
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Page Title",
+    "description": "Page description",
+    "url": "https://yourdomain.com/page",
+  };
+
+  return (
+    <>
+      <SchemaMarkup schema={schema} />
+      {/* Page content */}
+    </>
+  );
+}
+```
+
+## SEO Checklist
+
+Before marking a page as complete, ensure:
+
+- [ ] `metadata` export or `generateMetadata` function is present
+- [ ] Title includes site name (e.g., "Page Title | FlashyCardy")
+- [ ] Description is 120-160 characters and accurately describes the page
+- [ ] Open Graph tags are included for social sharing
+- [ ] Twitter Card metadata is included
+- [ ] Appropriate JSON-LD schema markup is added
+- [ ] Schema type matches the page content (WebPage, CollectionPage, etc.)
+- [ ] All URLs in schema are absolute (include full domain)
+- [ ] Keywords are relevant and not overused
+
+## Common Schema Types
+
+### WebSite (Homepage)
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "FlashyCardy",
+  "description": "Your personal flashcard platform",
+  "url": "https://yourdomain.com"
+}
+```
+
+### WebPage (Standard Pages)
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Page Title",
+  "description": "Page description",
+  "url": "https://yourdomain.com/page"
+}
+```
+
+### CollectionPage (Dashboard/Listing Pages)
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Dashboard",
+  "description": "Manage your flashcard decks",
+  "url": "https://yourdomain.com/dashboard"
+}
+```
+
+## Best Practices
+
+1. **Title Format**: Always use "Page Title | Site Name" format
+2. **Description Length**: Keep between 120-160 characters for optimal display
+3. **Unique Content**: Each page must have unique title and description
+4. **Schema Validation**: Test schema markup using [Google's Rich Results Test](https://search.google.com/test/rich-results)
+5. **Canonical URLs**: Use absolute URLs in schema markup
+6. **Dynamic Content**: Use `generateMetadata` for pages with dynamic content
+7. **Keywords**: Include 3-5 relevant keywords, avoid keyword stuffing
+
+## References
+
+- [Next.js Metadata API](https://nextjs.org/docs/app/api-reference/functions/generate-metadata)
+- [Schema.org Documentation](https://schema.org/)
+- [Google Search Central](https://developers.google.com/search)

@@ -1,0 +1,145 @@
+import { db } from "@/db";
+import { decksTable, cardsTable } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
+
+/**
+ * Get all decks for a specific user, ordered by creation date (newest first)
+ */
+export async function getUserDecks(userId: string) {
+  return await db.select()
+    .from(decksTable)
+    .where(eq(decksTable.userId, userId))
+    .orderBy(desc(decksTable.createdAt));
+}
+
+/**
+ * Get a specific deck by ID, verifying it belongs to the user
+ */
+export async function getDeckById(deckId: number, userId: string) {
+  const [deck] = await db.select()
+    .from(decksTable)
+    .where(and(
+      eq(decksTable.id, deckId),
+      eq(decksTable.userId, userId)
+    ))
+    .limit(1);
+  
+  return deck || null;
+}
+
+/**
+ * Get a deck with all its cards, verifying it belongs to the user
+ */
+export async function getDeckWithCards(deckId: number, userId: string) {
+  const deck = await db.select()
+    .from(decksTable)
+    .where(and(
+      eq(decksTable.id, deckId),
+      eq(decksTable.userId, userId)
+    ))
+    .limit(1);
+
+  if (deck.length === 0) {
+    return null;
+  }
+
+  const cards = await db.select()
+    .from(cardsTable)
+    .where(eq(cardsTable.deckId, deckId))
+    .orderBy(desc(cardsTable.updatedAt));
+
+  return {
+    ...deck[0],
+    cards
+  };
+}
+
+type CreateDeckParams = {
+  userId: string;
+  name: string;
+  description?: string;
+};
+
+/**
+ * Create a new deck for a user
+ */
+export async function createDeck(params: CreateDeckParams) {
+  const [newDeck] = await db.insert(decksTable).values({
+    userId: params.userId,
+    name: params.name,
+    description: params.description,
+  }).returning();
+  
+  return newDeck;
+}
+
+type UpdateDeckParams = {
+  id: number;
+  userId: string;
+  name?: string;
+  description?: string;
+};
+
+/**
+ * Update a deck, verifying it belongs to the user
+ */
+export async function updateDeck(params: UpdateDeckParams) {
+  // Verify ownership before update
+  const existing = await db.select()
+    .from(decksTable)
+    .where(and(
+      eq(decksTable.id, params.id),
+      eq(decksTable.userId, params.userId)
+    ))
+    .limit(1);
+  
+  if (existing.length === 0) {
+    throw new Error('Deck not found or access denied');
+  }
+  
+  // Update database
+  const [updatedDeck] = await db.update(decksTable)
+    .set({
+      ...(params.name && { name: params.name }),
+      ...(params.description !== undefined && { description: params.description }),
+      updatedAt: new Date(),
+    })
+    .where(and(
+      eq(decksTable.id, params.id),
+      eq(decksTable.userId, params.userId)
+    ))
+    .returning();
+  
+  return updatedDeck;
+}
+
+type DeleteDeckParams = {
+  id: number;
+  userId: string;
+};
+
+/**
+ * Delete a deck, verifying it belongs to the user
+ */
+export async function deleteDeck(params: DeleteDeckParams) {
+  // Verify ownership before delete
+  const existing = await db.select()
+    .from(decksTable)
+    .where(and(
+      eq(decksTable.id, params.id),
+      eq(decksTable.userId, params.userId)
+    ))
+    .limit(1);
+  
+  if (existing.length === 0) {
+    throw new Error('Deck not found or access denied');
+  }
+  
+  // Delete from database (cards will be deleted automatically due to cascade)
+  await db.delete(decksTable)
+    .where(and(
+      eq(decksTable.id, params.id),
+      eq(decksTable.userId, params.userId)
+    ));
+}
+

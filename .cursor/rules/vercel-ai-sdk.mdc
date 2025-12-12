@@ -1,0 +1,230 @@
+---
+
+## alwaysApply: true
+
+# AI Flashcard Generation (Vercel AI SDK v5 + OpenAI)
+
+This project uses **Vercel AI SDK v5** to generate structured flashcards via OpenAI. AI generation is a **premium entitlement** and must be gated by Clerk Billing feature access:
+
+* Required feature slug: **`ai_flashcard_generation`**
+
+This rule defines the canonical implementation pattern, validation requirements, and forbidden patterns.
+
+---
+
+## Core Principles
+
+1. **Server-side enforcement is mandatory**
+   Client-side gating is UX only. The server action must block unauthorized users before any OpenAI call.
+
+2. **Structured output only (no free-form parsing)**
+   Always use `generateObject` and validate output with Zod.
+
+3. **Deterministic shape + count**
+   Our app expects **exactly 5** `{ front, back }` flashcards per generation request (unless explicitly designed otherwise).
+
+4. **Keep secrets server-only**
+   `OPENAI_API_KEY` is read from server environment only (`.env` in dev). Never expose it to the client.
+
+---
+
+## Dependencies
+
+Install once:
+
+```bash
+npm install ai @ai-sdk/openai zod
+```
+
+---
+
+## Environment
+
+`.env.local`:
+
+```env
+OPENAI_API_KEY=...
+```
+
+---
+
+## Canonical Types & Schemas
+
+Use these schemas everywhere AI cards are generated/validated:
+
+```ts
+import { z } from "zod";
+
+export const flashcardSchema = z.object({
+  front: z.string().min(1).max(5000),
+  back: z.string().min(1).max(5000),
+});
+
+export const flashcardsArraySchema = z.array(flashcardSchema).length(5);
+```
+
+Notes:
+
+* `flashcardSchema` matches our DB shape: `front`, `back`.
+* `flashcardsArraySchema.length(5)` enforces **exactly 5** cards.
+
+---
+
+## Required Imports (v5)
+
+```ts
+import { generateObject } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+```
+
+---
+
+## Required Server-Side Entitlement Check (MANDATORY)
+
+In any server action / server component that triggers AI generation:
+
+```ts
+import { auth } from "@clerk/nextjs/server";
+
+const { userId, has } = await auth();
+if (!userId) throw new Error("Unauthorized");
+
+if (!has({ feature: "ai_flashcard_generation" })) {
+  // Use a stable error string your UI can detect to show an upgrade modal
+  throw new Error("UPGRADE_REQUIRED:AI_FLASHCARD_GENERATION");
+}
+```
+
+Guidance:
+
+* Prefer feature checks over plan checks for flexibility.
+* Use a stable error code prefix like `UPGRADE_REQUIRED:` for predictable client handling.
+
+---
+
+## Canonical Pattern: Generate Exactly 5 Flashcards
+
+Use `generateObject` and validate the length post-generation (required even if prompt says “5”):
+
+```ts
+import { generateObject } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { flashcardsArraySchema, flashcardSchema } from "@/lib/ai/schemas";
+
+const { object } = await generateObject({
+  model: openai("gpt-4o"),
+  output: "array",
+  schema: flashcardSchema, // schema for ONE item in the array
+  prompt: [
+    `Generate exactly 5 flashcards for the following deck.`,
+    `Return an array of objects with keys: front, back.`,
+    `Deck title: ${deckTitle}`,
+    `Deck description: ${deckDescription ?? ""}`,
+    `Rules:`,
+    `- front should be a clear question/prompt`,
+    `- back should be a correct, study-friendly answer/explanation`,
+    `- avoid duplicates`,
+  ].join("\n"),
+});
+
+// Enforce exact count + validate content
+const cards = flashcardsArraySchema.parse(object);
+```
+
+Model note:
+
+* Default to `openai("gpt-4o")` unless you intentionally swap for a cheaper model.
+
+---
+
+## Where AI Logic Must Live
+
+### Server Action (Preferred)
+
+* Implement AI generation in **Server Actions** (e.g., `src/app/actions/cards.ts`).
+* Use DB query helpers in `src/db/queries/*` for reads/writes.
+* Call `revalidatePath()` after mutations.
+
+### Client Components (UX Only)
+
+* Use `<Protect feature="ai_flashcard_generation" />` to hide/show buttons.
+* Never call OpenAI directly from client code.
+
+---
+
+## Persistence Pattern (DB Insert)
+
+Preferred:
+
+* Add a bulk insert helper (fast + consistent) instead of inserting in a loop.
+* Always associate created cards with `userId` and `deckId`.
+
+After inserting, revalidate:
+
+```ts
+import { revalidatePath } from "next/cache";
+revalidatePath(`/decks/${deckId}`);
+```
+
+---
+
+## Error Handling Requirements
+
+1. **Entitlement failures**
+
+* Throw `UPGRADE_REQUIRED:AI_FLASHCARD_GENERATION`
+* Client shows upgrade dialog linking to `/pricing`
+
+2. **Model/API failures**
+
+* Throw a user-safe error message (do not leak internals)
+* Log server-side for debugging
+
+3. **Validation failures**
+
+* If output fails schema validation or array length != 5:
+
+  * throw a handled error (and optionally retry once with a stricter prompt)
+
+---
+
+## Forbidden Patterns
+
+❌ No entitlement check:
+
+```ts
+await generateObject({ ... }); // forbidden
+```
+
+❌ OpenAI calls in client components:
+
+```ts
+"use client";
+fetch("https://api.openai.com/..."); // forbidden
+```
+
+❌ Relying on prompt-only for “5 cards”:
+
+```ts
+// forbidden: no post-parse length validation
+```
+
+❌ Returning unvalidated JSON:
+
+```ts
+JSON.parse(text) // forbidden for structured output in this feature
+```
+
+---
+
+## Quick Checklist (Must Pass)
+
+* [ ] Server action checks `has({ feature: "ai_flashcard_generation" })` before OpenAI call
+* [ ] Uses `generateObject` for structured output (no manual parsing)
+* [ ] Zod validates `{ front, back }` and enforces **exactly 5**
+* [ ] Inserts generated cards via DB query helpers (prefer bulk insert)
+* [ ] Revalidates affected pages after insert
+* [ ] Client shows upgrade prompt on `UPGRADE_REQUIRED:*` errors
+
+---

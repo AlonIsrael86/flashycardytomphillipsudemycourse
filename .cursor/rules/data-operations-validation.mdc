@@ -7,23 +7,22 @@ This project follows strict patterns for data operations and validation to ensur
 
 ## Core Principles
 
-1. **Data retrieval** - Always done via **Server Components**
-2. **Data mutations** (insert/update/delete) - Always done via **Server Actions**
-3. **Data validation** - Always done using **Zod**
-4. **Type safety** - Server actions must use TypeScript types, never `FormData`
+1. **Data retrieval** - Always done via **Server Components** using query functions from `db/queries`
+2. **Data mutations** (insert/update/delete) - Always done via **Server Actions** using mutation functions from `db/queries`
+3. **Database queries** - All database operations must be encapsulated in helper functions within the `db/queries` directory
+4. **Data validation** - Always done using **Zod**
+5. **Type safety** - Server actions must use TypeScript types, never `FormData`
 
 ## Data Retrieval: Server Components Only
 
-All data fetching must be done in Server Components. Never fetch data in Client Components or API routes.
+All data fetching must be done in Server Components using query functions from `db/queries`. Never fetch data in Client Components or API routes. Never write database queries directly in Server Components.
 
-### ✅ Correct Pattern - Server Component
+### ✅ Correct Pattern - Server Component with Query Functions
 
 ```typescript
 // src/app/decks/page.tsx
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/db';
-import { decksTable } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getUserDecks } from '@/db/queries/decks';
 
 export default async function DecksPage() {
   const { userId } = await auth();
@@ -32,10 +31,8 @@ export default async function DecksPage() {
     return <div>Please sign in</div>;
   }
   
-  // Data retrieval in Server Component
-  const decks = await db.select()
-    .from(decksTable)
-    .where(eq(decksTable.userId, userId));
+  // Data retrieval using query function from db/queries
+  const decks = await getUserDecks(userId);
   
   return (
     <div>
@@ -44,6 +41,43 @@ export default async function DecksPage() {
       ))}
     </div>
   );
+}
+```
+
+### ✅ Query Function Implementation
+
+```typescript
+// src/db/queries/decks.ts
+import { db } from '@/db';
+import { decksTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+export async function getUserDecks(userId: string) {
+  return await db.select()
+    .from(decksTable)
+    .where(eq(decksTable.userId, userId));
+}
+
+export async function getDeckById(deckId: number, userId: string) {
+  const [deck] = await db.select()
+    .from(decksTable)
+    .where(and(
+      eq(decksTable.id, deckId),
+      eq(decksTable.userId, userId)
+    ))
+    .limit(1);
+  
+  return deck || null;
+}
+
+export async function getDeckWithCards(deckId: number, userId: string) {
+  return await db.query.decksTable.findFirst({
+    where: and(
+      eq(decksTable.id, deckId),
+      eq(decksTable.userId, userId)
+    ),
+    with: { cards: true }
+  });
 }
 ```
 
@@ -65,22 +99,37 @@ export default function DecksPage() {
 export async function GET() { // ❌ NO API routes for reading data
   // ...
 }
+
+// BAD - Don't write database queries directly in Server Components
+// src/app/decks/page.tsx
+import { db } from '@/db';
+import { decksTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+export default async function DecksPage() {
+  const { userId } = await auth();
+  
+  // ❌ NO direct database queries in Server Components
+  const decks = await db.select()
+    .from(decksTable)
+    .where(eq(decksTable.userId, userId));
+  
+  // Use query functions from db/queries instead
+}
 ```
 
 ## Data Mutations: Server Actions Only
 
-All insert, update, and delete operations must be done via Server Actions. Never use API routes for mutations.
+All insert, update, and delete operations must be done via Server Actions using mutation functions from `db/queries`. Never use API routes for mutations. Never write database mutations directly in Server Actions.
 
-### ✅ Correct Pattern - Server Action with Zod Validation
+### ✅ Correct Pattern - Server Action with Zod Validation and Query Functions
 
 ```typescript
 // src/app/actions/decks.ts
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/db';
-import { decksTable } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { createDeck as createDeckQuery, updateDeck as updateDeckQuery, deleteDeck as deleteDeckQuery } from '@/db/queries/decks';
 import { z } from 'zod';
 
 // Define Zod schema
@@ -103,14 +152,12 @@ export async function createDeck(input: CreateDeckInput) {
   // Validate input with Zod
   const validatedInput = createDeckSchema.parse(input);
   
-  // Insert into database
-  const [newDeck] = await db.insert(decksTable).values({
+  // Use mutation function from db/queries
+  return await createDeckQuery({
     userId,
     name: validatedInput.name,
     description: validatedInput.description,
-  }).returning();
-  
-  return newDeck;
+  });
 }
 
 // Update example
@@ -132,32 +179,13 @@ export async function updateDeck(input: UpdateDeckInput) {
   // Validate input
   const validatedInput = updateDeckSchema.parse(input);
   
-  // Verify ownership before update
-  const existing = await db.select()
-    .from(decksTable)
-    .where(and(
-      eq(decksTable.id, validatedInput.id),
-      eq(decksTable.userId, userId)
-    ))
-    .limit(1);
-  
-  if (existing.length === 0) {
-    throw new Error('Deck not found or access denied');
-  }
-  
-  // Update database
-  const [updatedDeck] = await db.update(decksTable)
-    .set({
-      ...(validatedInput.name && { name: validatedInput.name }),
-      ...(validatedInput.description !== undefined && { description: validatedInput.description }),
-    })
-    .where(and(
-      eq(decksTable.id, validatedInput.id),
-      eq(decksTable.userId, userId)
-    ))
-    .returning();
-  
-  return updatedDeck;
+  // Use mutation function from db/queries
+  return await updateDeckQuery({
+    id: validatedInput.id,
+    userId,
+    name: validatedInput.name,
+    description: validatedInput.description,
+  });
 }
 
 // Delete example
@@ -177,12 +205,86 @@ export async function deleteDeck(input: DeleteDeckInput) {
   // Validate input
   const validatedInput = deleteDeckSchema.parse(input);
   
+  // Use mutation function from db/queries
+  await deleteDeckQuery({
+    id: validatedInput.id,
+    userId,
+  });
+}
+```
+
+### ✅ Mutation Function Implementation
+
+```typescript
+// src/db/queries/decks.ts
+import { db } from '@/db';
+import { decksTable } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
+
+type CreateDeckParams = {
+  userId: string;
+  name: string;
+  description?: string;
+};
+
+export async function createDeck(params: CreateDeckParams) {
+  const [newDeck] = await db.insert(decksTable).values({
+    userId: params.userId,
+    name: params.name,
+    description: params.description,
+  }).returning();
+  
+  return newDeck;
+}
+
+type UpdateDeckParams = {
+  id: number;
+  userId: string;
+  name?: string;
+  description?: string;
+};
+
+export async function updateDeck(params: UpdateDeckParams) {
+  // Verify ownership before update
+  const existing = await db.select()
+    .from(decksTable)
+    .where(and(
+      eq(decksTable.id, params.id),
+      eq(decksTable.userId, params.userId)
+    ))
+    .limit(1);
+  
+  if (existing.length === 0) {
+    throw new Error('Deck not found or access denied');
+  }
+  
+  // Update database
+  const [updatedDeck] = await db.update(decksTable)
+    .set({
+      ...(params.name && { name: params.name }),
+      ...(params.description !== undefined && { description: params.description }),
+    })
+    .where(and(
+      eq(decksTable.id, params.id),
+      eq(decksTable.userId, params.userId)
+    ))
+    .returning();
+  
+  return updatedDeck;
+}
+
+type DeleteDeckParams = {
+  id: number;
+  userId: string;
+};
+
+export async function deleteDeck(params: DeleteDeckParams) {
   // Verify ownership before delete
   const existing = await db.select()
     .from(decksTable)
     .where(and(
-      eq(decksTable.id, validatedInput.id),
-      eq(decksTable.userId, userId)
+      eq(decksTable.id, params.id),
+      eq(decksTable.userId, params.userId)
     ))
     .limit(1);
   
@@ -193,8 +295,8 @@ export async function deleteDeck(input: DeleteDeckInput) {
   // Delete from database
   await db.delete(decksTable)
     .where(and(
-      eq(decksTable.id, validatedInput.id),
-      eq(decksTable.userId, userId)
+      eq(decksTable.id, params.id),
+      eq(decksTable.userId, params.userId)
     ));
 }
 ```
@@ -256,6 +358,24 @@ export async function POST(req: Request) { // ❌ NO API routes for mutations
 export async function createDeck(input: { name: string }) { // ❌ Missing Zod validation
   // Directly use input without validation
   await db.insert(decksTable).values(input);
+}
+
+// BAD - Don't write database mutations directly in Server Actions
+// src/app/actions/decks.ts
+'use server';
+import { db } from '@/db';
+import { decksTable } from '@/db/schema';
+
+export async function createDeck(input: CreateDeckInput) {
+  const { userId } = await auth();
+  
+  // ❌ NO direct database mutations in Server Actions
+  const [newDeck] = await db.insert(decksTable).values({
+    userId,
+    name: input.name,
+  }).returning();
+  
+  // Use mutation functions from db/queries instead
 }
 ```
 
@@ -327,18 +447,74 @@ export async function createDeck(input: CreateDeckInput) {
 
 ```
 src/
+  db/
+    queries/
+      decks.ts        # Deck-related query and mutation functions
+      cards.ts        # Card-related query and mutation functions
+    index.ts          # Database connection
+    schema.ts         # Database schema definitions
   app/
     actions/
-      decks.ts        # Deck-related server actions
-      cards.ts        # Card-related server actions
+      decks.ts        # Deck-related server actions (validation + calls to db/queries)
+      cards.ts        # Card-related server actions (validation + calls to db/queries)
     decks/
-      page.tsx        # Server component for decks list
+      page.tsx        # Server component for decks list (calls db/queries)
     deck/
       [id]/
-        page.tsx      # Server component for deck details
+        page.tsx      # Server component for deck details (calls db/queries)
   components/
     deck-form.tsx    # Client component using server actions
 ```
+
+### Query Function Organization
+
+All database operations must be organized in `db/queries` directory:
+
+- **Query functions** (read operations): Functions that retrieve data from the database
+- **Mutation functions** (write operations): Functions that insert, update, or delete data
+- **Group by domain**: Create separate files for each domain (e.g., `decks.ts`, `cards.ts`)
+- **Export all functions**: All query and mutation functions must be exported for use in Server Components and Server Actions
+
+## Benefits of Query Functions Pattern
+
+### Separation of Concerns
+
+- **Server Components**: Focus on UI rendering and calling query functions
+- **Server Actions**: Focus on validation and calling mutation functions
+- **Query Functions**: Encapsulate all database logic in one place
+
+### Reusability
+
+Query and mutation functions can be reused across multiple Server Components and Server Actions:
+
+```typescript
+// Same query function used in multiple places
+// src/app/decks/page.tsx
+const decks = await getUserDecks(userId);
+
+// src/app/dashboard/page.tsx
+const recentDecks = await getUserDecks(userId);
+```
+
+### Testability
+
+Query functions can be easily unit tested in isolation:
+
+```typescript
+// tests/db/queries/decks.test.ts
+import { getUserDecks } from '@/db/queries/decks';
+
+describe('getUserDecks', () => {
+  it('should return only decks for the specified user', async () => {
+    const decks = await getUserDecks('user-123');
+    // Test assertions
+  });
+});
+```
+
+### Maintainability
+
+Database schema changes only require updates in `db/queries` files, not across multiple Server Components and Actions.
 
 ## Checklist
 
@@ -346,9 +522,13 @@ Before creating any data operation:
 
 - [ ] Data retrieval is in a Server Component (not Client Component or API route)
 - [ ] Data mutations are in Server Actions (not API routes)
+- [ ] All database queries are in `db/queries` directory (not directly in Server Components)
+- [ ] All database mutations are in `db/queries` directory (not directly in Server Actions)
+- [ ] Server Components call query functions from `db/queries` (not direct database queries)
+- [ ] Server Actions call mutation functions from `db/queries` (not direct database mutations)
 - [ ] Zod schema is defined for all server action inputs
 - [ ] TypeScript type is inferred from Zod schema (not `FormData`)
 - [ ] Server action validates input using Zod `.parse()` or `.safeParse()`
 - [ ] Client components pass typed objects to server actions (not FormData)
 - [ ] Authentication is checked in server actions
-- [ ] Ownership is verified before updates/deletes
+- [ ] Ownership is verified in mutation functions before updates/deletes

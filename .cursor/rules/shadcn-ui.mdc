@@ -3,7 +3,46 @@ alwaysApply: true
 ---
 # shadcn/ui Component Library
 
-This project uses **shadcn/ui** for all UI elements. shadcn/ui is a collection of re-usable components built with Radix UI and Tailwind CSS.
+This project uses **shadcn/ui** for ALL UI elements. shadcn/ui is a collection of re-usable components built with Radix UI and Tailwind CSS.
+
+## CRITICAL RULE: NO CUSTOM UI COMPONENTS
+
+**ABSOLUTELY NO CUSTOM UI COMPONENTS ARE ALLOWED IN THIS PROJECT.**
+
+- **ONLY** shadcn/ui components may be used for any UI elements
+- **NEVER** create custom UI components from scratch
+- **NEVER** build custom buttons, cards, inputs, modals, or any other UI elements
+- **ALWAYS** use shadcn/ui components for all UI needs
+- If a component doesn't exist in shadcn/ui, install it using `npx shadcn@latest add <component-name>`
+- Components can be customized by editing the shadcn/ui component files directly in `components/ui/`
+
+## Clerk Authentication UI Requirements
+
+**Clerk sign in and sign up functionality MUST follow these requirements:**
+
+1. **Sign In/Sign Up Buttons**: 
+   - **MUST** use shadcn/ui `Button` component from `@/components/ui/button`
+   - **NEVER** use Clerk's default button components or create custom buttons
+   - Example: `<Button onClick={() => setSignInOpen(true)}>Sign In</Button>`
+
+2. **Modal Implementation**:
+   - **MUST** use shadcn/ui `Dialog` component for sign in and sign up modals
+   - Install with: `npx shadcn@latest add dialog`
+   - Clerk's authentication forms should be rendered inside the shadcn/ui Dialog component
+   - **NEVER** use Clerk's built-in modal or page-based authentication UI
+   - Example structure:
+     ```tsx
+     <Dialog open={signInOpen} onOpenChange={setSignInOpen}>
+       <DialogContent>
+         <SignIn />
+       </DialogContent>
+     </Dialog>
+     ```
+
+3. **Integration Pattern**:
+   - Use Clerk's `<SignIn />` and `<SignUp />` components inside shadcn/ui Dialog components
+   - Trigger the dialogs using shadcn/ui Button components
+   - Maintain consistent UI styling by using only shadcn/ui components
 
 ## Initialization
 
@@ -33,10 +72,30 @@ For example, to install the button component:
 npx shadcn@latest add button
 ```
 
+Common components you may need:
+- `button` - For all buttons including Clerk authentication triggers
+- `dialog` - For modals including Clerk sign in/sign up
+- `card` - For card layouts
+- `input` - For form inputs
+- `form` - For form handling
+
 ## Usage Guidelines
 
-- Always use shadcn/ui components for UI elements instead of creating custom components from scratch
+- **ONLY** use shadcn/ui components for UI elements - no exceptions
 - Components are installed in the `components/ui` directory
 - Import components from `@/components/ui/<component-name>`
-- Components can be customized by editing the component files directly
+- Components can be customized by editing the component files directly in `components/ui/`
 - Check the [shadcn/ui documentation](https://ui.shadcn.com) for available components and their usage
+- Before creating any UI element, check if a shadcn/ui component exists for it
+- If a component doesn't exist, install it rather than creating a custom one
+
+## Dark Mode Requirements
+
+This project is in **dark mode**. When customizing or using shadcn/ui components, ensure proper contrast:
+
+- **NEVER** use dark colored text on dark backgrounds
+- **NEVER** use light colored text on light backgrounds
+- **ALWAYS** ensure sufficient contrast between text and background colors
+- Use Tailwind's dark mode classes appropriately (e.g., `dark:text-white`, `dark:bg-gray-900`)
+- When customizing component styles, test in dark mode to verify readability
+- shadcn/ui components are designed to work with dark mode by default, but customizations must maintain proper contrast
