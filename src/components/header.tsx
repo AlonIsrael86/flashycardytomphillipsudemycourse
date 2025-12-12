@@ -1,6 +1,7 @@
 'use client';
 
 import { UserButton } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import Link from "next/link";
 
 export function Header() {
@@ -13,7 +14,7 @@ export function Header() {
         <UserButton 
           afterSignOutUrl="/"
           appearance={{
-            baseTheme: "dark",
+            baseTheme: dark,
           }}
         />
       </div>
