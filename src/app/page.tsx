@@ -56,7 +56,8 @@ export default async function Home() {
       <SchemaMarkup schema={websiteSchema} />
       <WelcomeModal />
       
-      <div className="min-h-screen bg-black text-white flex items-center justify-center px-4 sm:px-6 md:px-8 overflow-hidden relative">
+      {/* Changed overflow-hidden to overflow-x-hidden to prevent vertical clipping */}
+      <div className="min-h-screen bg-black text-white flex items-center justify-center px-4 sm:px-6 md:px-8 overflow-x-hidden relative">
         {/* Animated Background */}
         <div className="fixed inset-0 z-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl animate-pulse" />
@@ -73,10 +74,10 @@ export default async function Home() {
           }}
         />
 
-        {/* Content */}
-        <div className="relative z-10 text-center space-y-8 max-w-4xl mx-auto">
-          {/* Logo Icon */}
-          <div className="flex justify-center mb-6">
+        {/* Content - Added top padding to prevent logo clipping */}
+        <div className="relative z-10 text-center space-y-8 max-w-4xl mx-auto py-16 sm:py-20">
+          {/* Logo Icon - Added margin top for safety */}
+          <div className="flex justify-center mb-6 mt-4">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-purple-500/30 animate-bounce-slow">
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -89,7 +90,32 @@ export default async function Home() {
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent leading-tight">
               FlashyCardy
             </h1>
-            <div className="flex items-center justify-center gap-2">
+            
+            {/* NEW: "by Just In Time" with trademark green and cool effect */}
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <span className="text-zinc-500 text-lg sm:text-xl font-light">by</span>
+              <a 
+                href="https://justintime.co.il" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-lg sm:text-xl font-semibold tracking-wide hover:scale-105 transition-all duration-300 relative group"
+                style={{ color: '#8bdbab' }}
+              >
+                <span className="relative z-10">Just In Time</span>
+                {/* Glow effect on hover */}
+                <span 
+                  className="absolute inset-0 blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-300 -z-10"
+                  style={{ backgroundColor: '#8bdbab' }}
+                />
+                {/* Underline animation */}
+                <span 
+                  className="absolute bottom-0 left-0 w-0 h-0.5 group-hover:w-full transition-all duration-300"
+                  style={{ backgroundColor: '#8bdbab' }}
+                />
+              </a>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-2">
               <div className="h-px w-12 bg-gradient-to-r from-transparent to-purple-500" />
               <span className="text-purple-400 text-sm font-medium tracking-widest uppercase">AI-Powered</span>
               <div className="h-px w-12 bg-gradient-to-l from-transparent to-purple-500" />
@@ -159,11 +185,21 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Demo Badge */}
+          {/* Demo Badge - Updated with JustInTime green */}
           <div className="pt-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-sm">
-              <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-              <span>Proof of Concept by JustInTime</span>
+            <div 
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm"
+              style={{ 
+                backgroundColor: 'rgba(139, 219, 171, 0.1)', 
+                borderColor: 'rgba(139, 219, 171, 0.3)',
+                color: '#8bdbab'
+              }}
+            >
+              <div 
+                className="w-2 h-2 rounded-full animate-pulse"
+                style={{ backgroundColor: '#8bdbab' }}
+              />
+              <span>Proof of Concept by Just In Time</span>
             </div>
           </div>
         </div>
