@@ -22,6 +22,7 @@ export function AuthDialogButtons() {
       <Dialog open={signUpOpen} onOpenChange={setSignUpOpen}>
         <DialogTrigger asChild>
           <Button
+            data-testid="auth-signup-trigger"
             size="lg"
             className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 text-lg px-8 py-6 rounded-xl"
           >
@@ -36,7 +37,10 @@ export function AuthDialogButtons() {
             <DialogTitle>Create your account</DialogTitle>
             <DialogDescription>Create an account to start building decks.</DialogDescription>
           </DialogHeader>
-          <SignUp />
+          <SignUp 
+            forceRedirectUrl="/dashboard"
+            signInForceRedirectUrl="/dashboard"
+          />
         </DialogContent>
       </Dialog>
 
@@ -44,6 +48,7 @@ export function AuthDialogButtons() {
       <Dialog open={signInOpen} onOpenChange={setSignInOpen}>
         <DialogTrigger asChild>
           <Button
+            data-testid="auth-signin-trigger"
             variant="outline"
             size="lg"
             className="bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-600 hover:border-zinc-500 transition-all duration-300 hover:scale-105 text-lg px-8 py-6 rounded-xl"
@@ -56,7 +61,9 @@ export function AuthDialogButtons() {
             <DialogTitle>Sign in</DialogTitle>
             <DialogDescription>Sign in to continue.</DialogDescription>
           </DialogHeader>
-          <SignIn />
+          <SignIn 
+            forceRedirectUrl="/dashboard"
+          />
         </DialogContent>
       </Dialog>
     </SignedOut>

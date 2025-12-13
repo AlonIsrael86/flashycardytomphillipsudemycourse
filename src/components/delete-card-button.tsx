@@ -44,6 +44,8 @@ export function DeleteCardButton({ cardId, deckId }: DeleteCardButtonProps) {
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         <Button
+          data-testid="delete-card-button"
+          data-card-id={cardId}
           variant="ghost"
           className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-950/20 opacity-0 group-hover:opacity-100 transition-opacity"
           title="Delete card"
@@ -80,6 +82,7 @@ export function DeleteCardButton({ cardId, deckId }: DeleteCardButtonProps) {
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isDeleting}
+            data-testid="confirm-delete-card"
             className="bg-red-600 hover:bg-red-700 text-white border-red-700"
           >
             {isDeleting ? "Deleting..." : "Delete Card"}

@@ -44,6 +44,8 @@ export function DeleteDeckButton({ deckId, deckName }: DeleteDeckButtonProps) {
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         <Button
+          data-testid="delete-deck-button"
+          data-deck-id={deckId}
           variant="ghost"
           className="bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 border border-zinc-700"
           title="Delete deck"
@@ -68,6 +70,7 @@ export function DeleteDeckButton({ deckId, deckName }: DeleteDeckButtonProps) {
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isDeleting}
+            data-testid="confirm-delete-deck"
             className="bg-red-600 hover:bg-red-700 text-white border-red-700"
           >
             {isDeleting ? "Deleting..." : "Delete Deck"}
@@ -77,6 +80,7 @@ export function DeleteDeckButton({ deckId, deckName }: DeleteDeckButtonProps) {
     </AlertDialog>
   );
 }
+
 
 
 

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { decksTable, cardsTable } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 /**
  * Get all decks for a specific user, ordered by creation date (newest first)
@@ -10,6 +10,33 @@ export async function getUserDecks(userId: string) {
     .from(decksTable)
     .where(eq(decksTable.userId, userId))
     .orderBy(desc(decksTable.createdAt));
+}
+
+/**
+ * Get all decks for a specific user with card counts, ordered by creation date (newest first)
+ */
+export async function getUserDecksWithCardCounts(userId: string) {
+  const decks = await db
+    .select({
+      id: decksTable.id,
+      userId: decksTable.userId,
+      name: decksTable.name,
+      description: decksTable.description,
+      createdAt: decksTable.createdAt,
+      updatedAt: decksTable.updatedAt,
+      cardCount: sql<number>`CAST(COUNT(${cardsTable.id}) AS INTEGER)`.as('cardCount'),
+    })
+    .from(decksTable)
+    .leftJoin(cardsTable, eq(decksTable.id, cardsTable.deckId))
+    .where(eq(decksTable.userId, userId))
+    .groupBy(decksTable.id)
+    .orderBy(desc(decksTable.createdAt));
+
+  // Map to ensure cardCount is always a number (even if 0)
+  return decks.map((deck) => ({
+    ...deck,
+    cardCount: Number(deck.cardCount) || 0,
+  }));
 }
 
 /**

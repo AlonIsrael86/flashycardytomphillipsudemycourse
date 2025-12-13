@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getDeckWithCards } from "@/db/queries/decks";
@@ -85,6 +85,9 @@ export default async function DeckPage({ params }: Props) {
   }
 
   const hasAIGeneration = has({ feature: "ai_flashcard_generation" });
+  const isFreeUser = !hasAIGeneration;
+  const user = await currentUser();
+  const firstName = user?.firstName || "there";
 
   const baseUrl = getBaseUrl();
   const webPageSchema = {
@@ -117,6 +120,39 @@ export default async function DeckPage({ params }: Props) {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
+          {/* Upgrade Banner for Free Users */}
+          {isFreeUser && (
+            <div 
+              data-testid="deck-upgrade-banner"
+              className="mb-6 sm:mb-8 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-600/20 via-blue-600/20 to-emerald-600/20 border border-purple-500/30 backdrop-blur-sm overflow-hidden"
+            >
+              <div className="relative p-4 sm:p-6 md:p-8">
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full blur-2xl" />
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-full blur-2xl" />
+                
+                <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">
+                      Unlock Pro Features, {firstName}!
+                    </h2>
+                    <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
+                      Upgrade to Pro to unlock AI-powered flashcard generation and unlimited decks.
+                    </p>
+                  </div>
+                  <Link href="/pricing" className="w-full sm:w-auto flex-shrink-0">
+                    <Button className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 whitespace-nowrap">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Upgrade to Pro
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Header Section */}
           <div className="mb-6 sm:mb-8 md:mb-12">
             <Link 
@@ -182,8 +218,8 @@ export default async function DeckPage({ params }: Props) {
                 
                 {/* Action Buttons */}
                 <div className="flex flex-col gap-3 w-full lg:w-auto lg:ml-8">
-                  <Link href={`/decks/${deck.id}/study`} className="w-full lg:w-auto">
-                    <Button className="w-full lg:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+                  <Link href={`/decks/${deck.id}/study`} className="w-full">
+                    <Button data-testid="study-deck-button" className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -191,7 +227,7 @@ export default async function DeckPage({ params }: Props) {
                       Study Deck
                     </Button>
                   </Link>
-                  <AddCardDialog deckId={deck.id} />
+                  <AddCardDialog deckId={deck.id} trigger={<Button data-testid="add-card-trigger" className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700">Add Card</Button>} />
                   <GenerateAICardsButton 
                     deckId={deck.id} 
                     hasAIGeneration={hasAIGeneration}
@@ -244,6 +280,8 @@ export default async function DeckPage({ params }: Props) {
                 {deck.cards.map((card, index) => (
                   <Card 
                     key={card.id}
+                    data-testid="card-item"
+                    data-card-id={card.id}
                     className="group relative bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 border-zinc-800/50 hover:border-zinc-700/70 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/5 hover:-translate-y-1 overflow-hidden"
                   >
                     {/* Card Number Badge */}
@@ -264,6 +302,8 @@ export default async function DeckPage({ params }: Props) {
                             currentBack={card.back}
                             trigger={
                               <Button
+                                data-testid="edit-card-button"
+                                data-card-id={card.id}
                                 variant="ghost"
                                 className="h-8 w-8 p-0 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-lg transition-all duration-200"
                                 title="Edit card"

@@ -104,6 +104,7 @@ export function EditCardDialog({ cardId, deckId, currentFront, currentBack, trig
                   <FormControl>
                     <textarea
                       {...field}
+                      data-testid="edit-card-front-input"
                       className="flex min-h-[120px] w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Enter the question or prompt..."
                       rows={5}
@@ -122,6 +123,7 @@ export function EditCardDialog({ cardId, deckId, currentFront, currentBack, trig
                   <FormControl>
                     <textarea
                       {...field}
+                      data-testid="edit-card-back-input"
                       className="flex min-h-[120px] w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Enter the answer or explanation..."
                       rows={5}
@@ -143,6 +145,7 @@ export function EditCardDialog({ cardId, deckId, currentFront, currentBack, trig
               </Button>
               <Button
                 type="submit"
+                data-testid="update-card-submit"
                 className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
                 disabled={isSubmitting}
               >
@@ -155,6 +158,7 @@ export function EditCardDialog({ cardId, deckId, currentFront, currentBack, trig
     </Dialog>
   );
 }
+
 
 
 

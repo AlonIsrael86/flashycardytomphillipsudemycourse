@@ -1,0 +1,177 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - banner:
+    - generic:
+      - link:
+        - /url: /dashboard
+        - text: FlashyCardy
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - img
+      - generic:
+        - heading [level=1]: FlashyCardy
+        - generic:
+          - generic: by
+          - link:
+            - /url: https://justintime.co.il
+            - text: Just In Time
+        - generic:
+          - generic: AI-Powered
+      - paragraph: Your personal flashcard platform with AI-powered card generation
+      - generic:
+        - generic:
+          - generic: ✨
+          - generic: AI Generation
+        - generic:
+          - generic: 📚
+          - generic: Unlimited Decks
+        - generic:
+          - generic: 🎯
+          - generic: Smart Study
+        - generic:
+          - generic: 🔒
+          - generic: Secure
+      - generic:
+        - button [expanded]:
+          - generic: Get Started Free
+          - img
+        - button: Sign In
+      - generic:
+        - paragraph: Powered by
+        - generic:
+          - generic: Next.js
+          - generic: OpenAI
+          - generic: Clerk
+          - generic: Stripe
+          - generic: Cursor AI
+      - generic:
+        - generic:
+          - generic: Proof of Concept by Just In Time
+  - button "Open Next.js Dev Tools" [ref=e6] [cursor=pointer]:
+    - img [ref=e7]
+  - alert
+  - dialog "Create your account":
+    - generic:
+      - heading [level=2]: Create your account
+      - paragraph: Create an account to start building decks.
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=1]: Create your account
+              - paragraph: Welcome! Please fill in the details to get started.
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: First name
+                        - generic: Optional
+                      - textbox:
+                        - /placeholder: First name
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: Last name
+                        - generic: Optional
+                      - textbox:
+                        - /placeholder: Last name
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: Email address
+                      - textbox:
+                        - /placeholder: Enter your email address
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: Password
+                      - generic:
+                        - textbox:
+                          - /placeholder: Enter your password
+                        - button:
+                          - img
+              - generic:
+                - generic:
+                  - button:
+                    - generic:
+                      - text: Continue
+                      - img
+        - generic:
+          - generic:
+            - generic: Already have an account?
+            - link:
+              - /url: https://happy-osprey-62.accounts.dev/sign-in?__clerk_db_jwt=dvb_36n0ZAWepld1GdnbvXy85u880Yx
+              - text: Sign in
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Secured by
+                  - link:
+                    - /url: https://go.clerk.com/components
+                    - img
+              - paragraph: Development mode
+    - button:
+      - img
+      - generic: Close
+  - dialog "ברוכים הבאים ל-FlashyCardy" [ref=e12]:
+    - generic [ref=e16]:
+      - img [ref=e19]
+      - heading "ברוכים הבאים ל-FlashyCardy" [level=2] [ref=e21]
+      - paragraph [ref=e22]: הדגמה של יכולות פיתוח עם AI - מבית JustInTime
+    - generic [ref=e23]:
+      - paragraph [ref=e24]: אתר זה מדגים מה אפשר לבנות בעזרת כלי פיתוח מבוססי בינה מלאכותית.
+      - generic [ref=e25]:
+        - generic [ref=e27]: מה ההדגמה הזו כוללת
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - text: הרשמה והתחברות משתמשים
+              - generic [ref=e32]: (Clerk)
+            - generic [ref=e33]: 🔐
+          - generic [ref=e34]:
+            - generic [ref=e35]:
+              - text: תשלומים ומנויים
+              - generic [ref=e36]: (Stripe)
+            - generic [ref=e37]: 💳
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - text: יצירת תוכן עם AI
+              - generic [ref=e40]: (OpenAI)
+            - generic [ref=e41]: 🤖
+          - generic [ref=e42]:
+            - generic [ref=e43]:
+              - text: ממשק מודרני ורספונסיבי
+              - generic [ref=e44]: (Next.js + shadcn/ui)
+            - generic [ref=e45]: ✨
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - text: פיתוח Full-Stack
+              - generic [ref=e48]: (Cursor AI)
+            - generic [ref=e49]: ⚡
+      - paragraph [ref=e50]: זהו פרויקט הדגמה בלבד. כדי לשמור על פרטיות הלקוחות שלנו, אנחנו לא מציגים את האתרים האמיתיים שלהם. אפליקציית הכרטיסיות הזו משמשת כהוכחת יכולת.
+      - generic [ref=e54]:
+        - paragraph [ref=e55]:
+          - generic [ref=e56]: תשלומי דמו
+          - img [ref=e57]
+        - paragraph [ref=e59]: ניתן לבדוק את תהליך השדרוג באמצעות פרטי כרטיס האשראי לדוגמה המופיעים בעמוד התשלום.
+      - paragraph [ref=e60]: מעוניינים לבנות משהו דומה לעסק שלכם? 🚀
+    - generic [ref=e61]:
+      - button "צור קשר עם JustInTime" [active] [ref=e62]:
+        - generic [ref=e63]: צור קשר עם JustInTime
+        - img
+      - button "לחקור את ההדגמה" [ref=e64]
+    - button "Close" [ref=e65]:
+      - img
+      - generic [ref=e66]: Close
+```

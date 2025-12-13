@@ -210,6 +210,7 @@ export function StudyFlashcard({ cards, deckName }: StudyFlashcardProps) {
       {/* Flashcard */}
       <div className="perspective-1000">
         <Card
+          data-testid="study-flashcard"
           className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 cursor-pointer transition-all duration-300 hover:border-zinc-700 min-h-[300px] sm:min-h-[350px] md:min-h-[400px] flex items-center justify-center"
           onClick={handleFlip}
         >
@@ -269,6 +270,7 @@ export function StudyFlashcard({ cards, deckName }: StudyFlashcardProps) {
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
           <Button
+            data-testid="study-previous-button"
             variant="outline"
             onClick={handlePrevious}
             disabled={currentIndex === 0}
@@ -291,6 +293,7 @@ export function StudyFlashcard({ cards, deckName }: StudyFlashcardProps) {
           </Button>
 
         <Button
+          data-testid="study-flip-button"
           variant="outline"
           onClick={handleFlip}
           className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white w-full sm:w-auto"
@@ -333,6 +336,7 @@ export function StudyFlashcard({ cards, deckName }: StudyFlashcardProps) {
         </Button>
 
         <Button
+          data-testid="study-next-button"
           variant="outline"
           onClick={handleNext}
           disabled={currentIndex === totalCards - 1}

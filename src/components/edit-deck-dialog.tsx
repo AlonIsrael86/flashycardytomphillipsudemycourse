@@ -103,6 +103,7 @@ export function EditDeckDialog({ deckId, currentName, currentDescription, trigge
                   <FormControl>
                     <Input
                       {...field}
+                      data-testid="edit-deck-name-input"
                       className="bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-600"
                       placeholder="Enter deck name..."
                     />
@@ -120,6 +121,7 @@ export function EditDeckDialog({ deckId, currentName, currentDescription, trigge
                   <FormControl>
                     <textarea
                       {...field}
+                      data-testid="edit-deck-description-input"
                       value={field.value || ""}
                       className="flex min-h-[120px] w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Enter deck description (optional)..."
@@ -142,6 +144,7 @@ export function EditDeckDialog({ deckId, currentName, currentDescription, trigge
               </Button>
               <Button
                 type="submit"
+                data-testid="update-deck-submit"
                 className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
                 disabled={isSubmitting}
               >
@@ -154,6 +157,7 @@ export function EditDeckDialog({ deckId, currentName, currentDescription, trigge
     </Dialog>
   );
 }
+
 
 
 
