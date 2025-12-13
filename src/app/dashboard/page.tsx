@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getUserDecks } from "@/db/queries/decks";
+import { getUserDecksWithCardCounts } from "@/db/queries/decks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Metadata } from "next";
@@ -36,8 +36,8 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  // Fetch user's decks using query function
-  const decks = await getUserDecks(userId);
+  // Fetch user's decks with card counts using query function
+  const decks = await getUserDecksWithCardCounts(userId);
 
   // Check if user has unlimited decks feature
   const hasUnlimitedDecks = has({ feature: "unlimited_decks" });
@@ -124,9 +124,9 @@ export default async function DashboardPage() {
               {decks.map((deck) => (
                 <Card
                   key={deck.id}
-                  className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-colors"
+                  className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col h-full"
                 >
-                  <CardHeader>
+                  <CardHeader className="flex-1">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <Link
@@ -146,11 +146,17 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="mt-auto">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-zinc-400">
-                        Updated {new Date(deck.updatedAt).toLocaleDateString()}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-zinc-400">
+                          {deck.cardCount} {deck.cardCount === 1 ? 'card' : 'cards'}
+                        </span>
+                        <span className="text-sm text-zinc-500">•</span>
+                        <span className="text-sm text-zinc-400">
+                          Updated {new Date(deck.updatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
                       <div className="flex gap-2">
                         <EditDeckDialog
                           deckId={deck.id}

@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { decksTable, cardsTable } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 /**
  * Get all decks for a specific user, ordered by creation date (newest first)
@@ -10,6 +11,25 @@ export async function getUserDecks(userId: string) {
     .from(decksTable)
     .where(eq(decksTable.userId, userId))
     .orderBy(desc(decksTable.createdAt));
+}
+
+/**
+ * Get all decks for a specific user with card counts, ordered by creation date (newest first)
+ */
+export async function getUserDecksWithCardCounts(userId: string) {
+  const decks = await db.query.decksTable.findMany({
+    where: eq(decksTable.userId, userId),
+    orderBy: (decks, { desc }) => [desc(decks.createdAt)],
+    with: {
+      cards: true,
+    },
+  });
+
+  // Map decks to include card count
+  return decks.map(deck => ({
+    ...deck,
+    cardCount: deck.cards.length,
+  }));
 }
 
 /**
